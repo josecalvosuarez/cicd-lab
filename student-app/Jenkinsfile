@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    environment {
+        // Students create this credential in Jenkins:
+        // Kind: "Username with password"
+        // ID: "dockerhub-credentials"
+        DOCKERHUB_CREDS = credentials('dockerhub-credentials')
+
+        // Students replace this with their own Docker Hub username/repo
+        IMAGE_NAME = "${DOCKERHUB_CREDS_USR}/cicd-lab-app"
+        IMAGE_TAG  = "${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest"
+            }
+        }
+
+        stage('Push') {
+            steps {
+                sh "echo ${DOCKERHUB_CREDS_PSW} | docker login -u ${DOCKERHUB_CREDS_USR} --password-stdin"
+                sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                sh "docker push ${IMAGE_NAME}:latest"
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "docker logout"
+            sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest || true"
+        }
+        success {
+            echo "Image pushed: ${IMAGE_NAME}:${IMAGE_TAG}"
+        }
+    }
+}

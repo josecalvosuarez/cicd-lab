@@ -1,0 +1,5 @@
+git
+workflow-aggregator
+gitea
+credentials-binding
+pipeline-stage-view
